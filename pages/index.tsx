@@ -1,3 +1,5 @@
+import { sendTelegramAlert } from '../utils/sendAlert';
+
 import { useEffect, useState } from 'react';
 
 export default function SniperDashboard() {
@@ -10,6 +12,12 @@ export default function SniperDashboard() {
   const [totalCapital, setTotalCapital] = useState(2000);
 
   useEffect(() => {
+  if (spread && spread >= 1.1) {
+    const profit = estProfit();
+    sendTelegramAlert(spread, profit);
+  }
+}, [spread]);
+
     const interval = setInterval(() => {
       const fetchPrices = async () => {
         try {

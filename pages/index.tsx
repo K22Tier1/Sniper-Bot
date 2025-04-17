@@ -13,7 +13,7 @@ export default function SniperDashboard() {
     const interval = setInterval(() => {
       const fetchPrices = async () => {
         try {
-          const krakenRes = await fetch('https://api.kraken.com/0/public/Ticker?pair=SOLUSD');
+          const krakenRes = await fetch('https://api.kraken.com/0/public/Ticker?pair=SOLUSDT');
           const coinbaseRes = await fetch('https://api.coinbase.com/v2/prices/SOL-USD/spot');
           const krakenData = await krakenRes.json();
           const coinbaseData = await coinbaseRes.json();

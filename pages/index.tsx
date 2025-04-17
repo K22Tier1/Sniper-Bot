@@ -13,25 +13,15 @@ export default function SniperDashboard() {
     const interval = setInterval(() => {
       const fetchPrices = async () => {
         try {
-          const krakenRes = await fetch('https://api.kraken.com/0/public/Ticker?pair=SOLUSDT');
-          const coinbaseRes = await fetch('https://api.coinbase.com/v2/prices/SOL-USD/spot');
-          const krakenData = await krakenRes.json();
-          const coinbaseData = await coinbaseRes.json();
+          const res = await fetch('/api/prices');
+          const data = await res.json();
 
-          const kraken = parseFloat(krakenData.result.SOLUSD.c[0]);
-          const coinbase = parseFloat(coinbaseData.data.amount);
+          const kraken = data.kraken;
+          const coinbase = data.coinbase;
 
           setKrakenPrice(kraken);
           setCoinbasePrice(coinbase);
-          const currentSpread = ((coinbase - kraken) / kraken) * 100;
-          setSpread(currentSpread);
-
-          // Play sniper sound if spread is in profit zone
-          if (currentSpread >= 1.1) {
-            new Audio('/ping.mp3').play();
-            console.log('Sniper alert: Spread above 1.1%!');
-          }
-
+          setSpread(((coinbase - kraken) / kraken) * 100);
         } catch (e) {
           console.error('Failed to fetch prices:', e);
         }
@@ -46,10 +36,12 @@ export default function SniperDashboard() {
   const estProfit = () => {
     if (!krakenPrice || !coinbasePrice) return 0;
     const gross = (coinbasePrice - krakenPrice) * (tradeSize / krakenPrice);
+
     const krakenFee = 0.0016;
     const coinbaseFee = useMarketOrder ? 0.006 : 0.004;
     const slippage = useMarketOrder ? 0.001 : 0;
-    const totalFees = tradeSize * (krakenFee + coinbaseFee) + tradeSize * slippage;
+
+    const totalFees = tradeSize * (krakenFee + coinbaseFee) + (tradeSize * slippage);
     return gross - totalFees;
   };
 
@@ -67,8 +59,8 @@ export default function SniperDashboard() {
       <h1 className="text-xl font-bold text-center">Sniper Dashboard</h1>
 
       <div className="border p-4 rounded shadow">
-        <div>📉 Kraken Price: ${krakenPrice?.toFixed(2) || '...'}</div>
-        <div>📈 Coinbase Price: ${coinbasePrice?.toFixed(2) || '...'}</div>
+        <div>📉 Kraken Price: ${krakenPrice?.toFixed(2) || '...'} </div>
+        <div>📈 Coinbase Price: ${coinbasePrice?.toFixed(2) || '...'} </div>
         <div className={`text-lg font-bold ${spread && spread >= 1.1 ? 'text-green-600' : 'text-red-500'}`}>
           Spread: {spread ? spread.toFixed(2) : '...'}%
         </div>

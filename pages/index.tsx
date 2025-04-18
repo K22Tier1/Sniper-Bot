@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
 
-const TELEGRAM_TOKEN = 'YOUR_REAL_TELEGRAM_BOT_TOKEN_HERE'
-const TELEGRAM_CHAT_ID = 'YOUR_REAL_CHAT_ID_HERE'
+const TELEGRAM_TOKEN = '6437304516:AAG-rNR1ZbUuVur1pKXltlb3GKxETChFKBU'
+const TELEGRAM_CHAT_ID = '5640154733'
 
 // USD pairs supported by both Gemini and Kraken
 const TRADE_PAIRS = ['BTC/USD', 'ETH/USD', 'LTC/USD', 'LINK/USD', 'SOL/USD']

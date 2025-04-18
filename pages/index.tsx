@@ -135,3 +135,4 @@ if (typeof window !== 'undefined') {
   // @ts-ignore
   window.sendTelegramAlert = sendTelegramAlert;
 }
+

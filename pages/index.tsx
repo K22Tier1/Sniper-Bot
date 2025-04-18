@@ -21,7 +21,7 @@ export default function SniperDashboard() {
   const [useMarketOrder, setUseMarketOrder] = useState(true)
   const [totalProfit, setTotalProfit] = useState(0)
   const [totalCapital, setTotalCapital] = useState(2000)
-  const [lastAlertSpread, setLastAlertSpread] = useState(0)
+  const [lastAlertSpread, setLastAlertSpread] = useState(null)
 
   useEffect(() => {
     const interval = setInterval(async () => {
@@ -41,10 +41,13 @@ export default function SniperDashboard() {
         const calcSpread = ((coinbase - kraken) / kraken) * 100
         setSpread(calcSpread)
 
-        if (calcSpread >= 1.05 && Math.abs(calcSpread - lastAlertSpread) > 0.1) {
+        const absSpread = Math.abs(calcSpread)
+        const direction = calcSpread >= 0 ? 'Positive (Buy Kraken → Sell Coinbase)' : 'Negative (Sell Kraken → Buy Coinbase)'
+
+        if (absSpread >= 1.05 && (!lastAlertSpread || Math.abs(absSpread - lastAlertSpread) > 0.05)) {
           const profit = estProfit(kraken, coinbase)
-          sendTelegramAlert(calcSpread, profit, selectedPair.id)
-          setLastAlertSpread(calcSpread)
+          sendTelegramAlert(calcSpread, profit, selectedPair.id, direction)
+          setLastAlertSpread(absSpread)
         }
       } catch (e) {
         console.error('Error fetching prices:', e)
@@ -70,6 +73,8 @@ export default function SniperDashboard() {
   }
 
   const roiPercent = ((totalProfit / totalCapital) * 100).toFixed(2)
+  const spreadColor = spread >= 1.1 || spread <= -1.1 ? 'text-green-600' : Math.abs(spread) >= 1.05 ? 'text-yellow-500' : 'text-red-500'
+  const actionSuggestion = spread >= 1.1 ? 'Buy on Kraken → Sell on Coinbase' : spread <= -1.1 ? 'Sell on Kraken → Buy on Coinbase' : 'No action'
 
   return (
     <div className="p-4 flex flex-col gap-4 max-w-md mx-auto">
@@ -88,10 +93,11 @@ export default function SniperDashboard() {
       <div className="border p-4 rounded shadow">
         <div>📉 Kraken ({selectedPair.id}): ${krakenPrice?.toFixed(2) || '...'}</div>
         <div>📈 Coinbase ({selectedPair.id}): ${coinbasePrice?.toFixed(2) || '...'}</div>
-        <div className={`text-lg font-bold ${spread >= 1.1 ? 'text-green-600' : spread >= 1.05 ? 'text-yellow-500' : 'text-red-500'}`}>
-          Spread: {spread ? spread.toFixed(2) : '...'}%
+        <div className={`text-lg font-bold ${spreadColor}`}>
+          Spread: {spread ? spread.toFixed(2) : '...'}% ({spread >= 0 ? 'Positive' : 'Negative'})
         </div>
-        <div className="text-sm">(Green ≥ 1.1%, Yellow 1.05–1.09%)</div>
+        <div className="text-sm">(Green ≥ ±1.1%, Yellow 1.05–1.09%)</div>
+        <div className="text-sm font-semibold">Suggested Action: {actionSuggestion}</div>
       </div>
 
       <div className="border p-4 rounded shadow text-center">

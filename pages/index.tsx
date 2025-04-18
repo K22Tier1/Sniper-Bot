@@ -6,6 +6,10 @@ const PAIRS = [
   { id: 'SOL', kraken: 'SOLUSDT', coinbase: 'SOL-USD' },
   { id: 'ETH', kraken: 'ETHUSDT', coinbase: 'ETH-USD' },
   { id: 'APE', kraken: 'APEUSDT', coinbase: 'APE-USD' },
+  { id: 'DOGE', kraken: 'DOGEUSDT', coinbase: 'DOGE-USD' },
+  { id: 'LTC', kraken: 'LTCUSDT', coinbase: 'LTC-USD' },
+  { id: 'AVAX', kraken: 'AVAXUSDT', coinbase: 'AVAX-USD' },
+  { id: 'MATIC', kraken: 'MATICUSDT', coinbase: 'MATIC-USD' },
 ]
 
 export default function SniperDashboard() {
@@ -17,6 +21,7 @@ export default function SniperDashboard() {
   const [useMarketOrder, setUseMarketOrder] = useState(true)
   const [totalProfit, setTotalProfit] = useState(0)
   const [totalCapital, setTotalCapital] = useState(2000)
+  const [lastAlertSpread, setLastAlertSpread] = useState(0)
 
   useEffect(() => {
     const interval = setInterval(async () => {
@@ -36,9 +41,10 @@ export default function SniperDashboard() {
         const calcSpread = ((coinbase - kraken) / kraken) * 100
         setSpread(calcSpread)
 
-        if (calcSpread >= 1.1) {
+        if (calcSpread >= 1.05 && Math.abs(calcSpread - lastAlertSpread) > 0.1) {
           const profit = estProfit(kraken, coinbase)
-          sendTelegramAlert(calcSpread, profit)
+          sendTelegramAlert(calcSpread, profit, selectedPair.id)
+          setLastAlertSpread(calcSpread)
         }
       } catch (e) {
         console.error('Error fetching prices:', e)
@@ -82,10 +88,10 @@ export default function SniperDashboard() {
       <div className="border p-4 rounded shadow">
         <div>📉 Kraken ({selectedPair.id}): ${krakenPrice?.toFixed(2) || '...'}</div>
         <div>📈 Coinbase ({selectedPair.id}): ${coinbasePrice?.toFixed(2) || '...'}</div>
-        <div className={`text-lg font-bold ${spread >= 1.1 ? 'text-green-600' : 'text-red-500'}`}>
+        <div className={`text-lg font-bold ${spread >= 1.1 ? 'text-green-600' : spread >= 1.05 ? 'text-yellow-500' : 'text-red-500'}`}>
           Spread: {spread ? spread.toFixed(2) : '...'}%
         </div>
-        <div className="text-sm">(Sniper Zone ≥ 1.1%)</div>
+        <div className="text-sm">(Green ≥ 1.1%, Yellow 1.05–1.09%)</div>
       </div>
 
       <div className="border p-4 rounded shadow text-center">
@@ -123,4 +129,3 @@ export default function SniperDashboard() {
     </div>
   )
 }
-

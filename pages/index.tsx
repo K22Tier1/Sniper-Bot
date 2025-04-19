@@ -8,7 +8,6 @@ const TRADE_PAIRS = [
   { id: 'SOL', kraken: 'SOLUSD', gemini: 'solusd' },
   { id: 'AVAX', kraken: 'AVAXUSD', gemini: 'avaxusd' },
   { id: 'MATIC', kraken: 'MATICUSD', gemini: 'maticusd' },
-  { id: 'APT', kraken: 'APTUSD', gemini: 'aptusd' },
   { id: 'LTC', kraken: 'LTCUSD', gemini: 'ltcusd' },
   { id: 'LINK', kraken: 'LINKUSD', gemini: 'linkusd' }
 ]

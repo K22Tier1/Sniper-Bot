@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
 
-const TELEGRAM_TOKEN = '7876526288:AAHKFSpcjFt5MSodbDCHF_LiUGShCZBqSXI'
-const TELEGRAM_CHAT_ID = '6053545857'
+const TELEGRAM_TOKEN = '6437304516:AAG-rNR1ZbUuVur1pKXltlb3GKxETChFKBU'
+const TELEGRAM_CHAT_ID = '5640154733'
 
-const TRADE_PAIRS = ['BTC/USD', 'ETH/USD', 'LTC/USD', 'LINK/USD', 'SOL/USD']
+const TRADE_PAIRS = ['SOL/USD', 'AVAX/USD', 'MATIC/USD', 'APT/USD', 'LTC/USD', 'LINK/USD']
 const SPREAD_THRESHOLD = 1.1 // %
 const TRADE_SIZE = 20 // USD test size
 const COOLDOWN_MS = 1500 // 1.5s cooldown per pair
@@ -37,9 +37,7 @@ function calculateSpread(priceA: number, priceB: number) {
 }
 
 async function sendTelegramAlert(pair: string, spread: number, profit: number, type: string) {
-  const message = `\u{1F4E1} *ALERT*\nPair: ${pair}\nSpread: ${spread.toFixed(2)}%\nEst. Profit: $${profit.toFixed(
-    2
-  )}\n\n*Action*: ${
+  const message = `📡 *ALERT*\nPair: ${pair}\nSpread: ${spread.toFixed(2)}%\nEst. Profit: $${profit.toFixed(2)}\n\n*Action*: ${
     type === 'geminiBuy'
       ? 'Buy on Gemini (Market) / Sell on Kraken (Limit)'
       : 'Buy on Kraken (Limit) / Sell on Gemini (Market)'

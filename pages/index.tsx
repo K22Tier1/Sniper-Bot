@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
 
-const TELEGRAM_TOKEN = '6437304516:AAG-rNR1ZbUuVur1pKXltlb3GKxETChFKBU'
-const TELEGRAM_CHAT_ID = '5640154733'
+const TELEGRAM_TOKEN = '7876526288:AAHKFSpcjFt5MSodbDCHF_LiUGShCZBqSXI'
+const TELEGRAM_CHAT_ID = '6053545857'
 
 const TRADE_PAIRS = ['SOL/USD', 'AVAX/USD', 'MATIC/USD', 'APT/USD', 'LTC/USD', 'LINK/USD']
 const SPREAD_THRESHOLD = 1.1 // %
@@ -11,7 +11,14 @@ const COOLDOWN_MS = 1500 // 1.5s cooldown per pair
 
 let lastTradeTimestamps: { [pair: string]: number } = {}
 
-async function getPrices(pair: string) {
+type PriceData = {
+  krakenAsk: number
+  krakenBid: number
+  geminiAsk: number
+  geminiBid: number
+}
+
+async function getPrices(pair: string): Promise<PriceData> {
   const [base, quote] = pair.split('/')
   const krakenSymbol = `${base}${quote}`
   const geminiSymbol = `${base.toLowerCase()}${quote.toLowerCase()}`
@@ -21,22 +28,22 @@ async function getPrices(pair: string) {
     axios.get(`https://api.gemini.com/v1/pubticker/${geminiSymbol}`)
   ])
 
-  const krakenData = krakenRes.data as any
-  const geminiData = geminiRes.data as any
+  const krakenData = krakenRes.data as { result: Record<string, { a: string[]; b: string[] }> }
+  const geminiData = geminiRes.data as { ask: string; bid: string }
 
-  const krakenAsk = parseFloat(Object.values(krakenData.result)[0]['a'][0])
-  const krakenBid = parseFloat(Object.values(krakenData.result)[0]['b'][0])
+  const krakenAsk = parseFloat(Object.values(krakenData.result)[0].a[0])
+  const krakenBid = parseFloat(Object.values(krakenData.result)[0].b[0])
   const geminiAsk = parseFloat(geminiData.ask)
   const geminiBid = parseFloat(geminiData.bid)
 
   return { krakenAsk, krakenBid, geminiAsk, geminiBid }
 }
 
-function calculateSpread(priceA: number, priceB: number) {
+function calculateSpread(priceA: number, priceB: number): number {
   return ((priceA - priceB) / ((priceA + priceB) / 2)) * 100
 }
 
-async function sendTelegramAlert(pair: string, spread: number, profit: number, type: string) {
+async function sendTelegramAlert(pair: string, spread: number, profit: number, type: string): Promise<void> {
   const message = `📡 *ALERT*\nPair: ${pair}\nSpread: ${spread.toFixed(2)}%\nEst. Profit: $${profit.toFixed(2)}\n\n*Action*: ${
     type === 'geminiBuy'
       ? 'Buy on Gemini (Market) / Sell on Kraken (Limit)'

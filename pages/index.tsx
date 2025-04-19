@@ -4,11 +4,10 @@ import axios from 'axios'
 const TELEGRAM_TOKEN = '6437304516:AAG-rNR1ZbUuVur1pKXltlb3GKxETChFKBU'
 const TELEGRAM_CHAT_ID = '5640154733'
 
-// USD pairs supported by both Gemini and Kraken
 const TRADE_PAIRS = ['BTC/USD', 'ETH/USD', 'LTC/USD', 'LINK/USD', 'SOL/USD']
 const SPREAD_THRESHOLD = 1.1 // %
-const TRADE_SIZE = 20 // USD (test size)
-const COOLDOWN_MS = 1500 // 1.5 seconds cooldown per pair
+const TRADE_SIZE = 20 // USD test size
+const COOLDOWN_MS = 1500 // 1.5s cooldown per pair
 
 let lastTradeTimestamps: { [pair: string]: number } = {}
 
@@ -19,13 +18,16 @@ async function getPrices(pair: string) {
 
   const [krakenRes, geminiRes] = await Promise.all([
     axios.get(`https://api.kraken.com/0/public/Ticker?pair=${krakenSymbol}`),
-    axios.get(`https://api.gemini.com/v1/pubticker/${geminiSymbol}`),
+    axios.get(`https://api.gemini.com/v1/pubticker/${geminiSymbol}`)
   ])
 
-  const krakenAsk = parseFloat(Object.values(krakenRes.data.result)[0]['a'][0])
-  const krakenBid = parseFloat(Object.values(krakenRes.data.result)[0]['b'][0])
-  const geminiAsk = parseFloat(geminiRes.data.ask)
-  const geminiBid = parseFloat(geminiRes.data.bid)
+  const krakenData = krakenRes.data as any
+  const geminiData = geminiRes.data as any
+
+  const krakenAsk = parseFloat(Object.values(krakenData.result)[0]['a'][0])
+  const krakenBid = parseFloat(Object.values(krakenData.result)[0]['b'][0])
+  const geminiAsk = parseFloat(geminiData.ask)
+  const geminiBid = parseFloat(geminiData.bid)
 
   return { krakenAsk, krakenBid, geminiAsk, geminiBid }
 }
@@ -35,7 +37,9 @@ function calculateSpread(priceA: number, priceB: number) {
 }
 
 async function sendTelegramAlert(pair: string, spread: number, profit: number, type: string) {
-  const message = `\u{1F4E1} *ALERT*\nPair: ${pair}\nSpread: ${spread.toFixed(2)}%\nEst. Profit: $${profit.toFixed(2)}\n\n*Action*: ${
+  const message = `📡 *ALERT*\nPair: ${pair}\nSpread: ${spread.toFixed(2)}%\nEst. Profit: $${profit.toFixed(
+    2
+  )}\n\n*Action*: ${
     type === 'geminiBuy'
       ? 'Buy on Gemini (Market) / Sell on Kraken (Limit)'
       : 'Buy on Kraken (Limit) / Sell on Gemini (Market)'
@@ -48,41 +52,14 @@ async function sendTelegramAlert(pair: string, spread: number, profit: number, t
   })
 }
 
-async function checkSpread(pair: string, updateData: (row: any) => void, setTotalProfit: (value: number) => void) {
-  try {
-    const prices = await getPrices(pair)
-    const now = Date.now()
-    const lastTrade = lastTradeTimestamps[pair] || 0
-
-    const forwardSpread = calculateSpread(prices.geminiBid, prices.krakenAsk)
-    const reverseSpread = calculateSpread(prices.krakenBid, prices.geminiAsk)
-
-    if (forwardSpread >= SPREAD_THRESHOLD && now - lastTrade >= COOLDOWN_MS) {
-      const profit = (forwardSpread / 100) * TRADE_SIZE
-      await sendTelegramAlert(pair, forwardSpread, profit, 'geminiBuy')
-      lastTradeTimestamps[pair] = now
-      updateData({ pair, ...prices, spread: forwardSpread, profit, action: 'Buy Gemini / Sell Kraken' })
-      setTotalProfit(prev => prev + profit)
-    } else if (reverseSpread >= SPREAD_THRESHOLD && now - lastTrade >= COOLDOWN_MS) {
-      const profit = (reverseSpread / 100) * TRADE_SIZE
-      await sendTelegramAlert(pair, reverseSpread, profit, 'krakenBuy')
-      lastTradeTimestamps[pair] = now
-      updateData({ pair, ...prices, spread: reverseSpread, profit, action: 'Buy Kraken / Sell Gemini' })
-      setTotalProfit(prev => prev + profit)
-    }
-  } catch (error: any) {
-    console.error(`Error checking spread for ${pair}:`, error.message)
-  }
-}
-
 export default function SniperDashboard() {
   const [data, setData] = useState<any[]>([])
-  const [totalProfit, setTotalProfit] = useState(0)
+  const [totalProfit, setTotalProfit] = useState<number>(0)
 
   useEffect(() => {
     const updateRow = (row: any) => {
-      setData(prev => {
-        const index = prev.findIndex(r => r.pair === row.pair)
+      setData((prev) => {
+        const index = prev.findIndex((r) => r.pair === row.pair)
         if (index >= 0) {
           const updated = [...prev]
           updated[index] = row
@@ -93,8 +70,35 @@ export default function SniperDashboard() {
       })
     }
 
+    const checkSpread = async (pair: string) => {
+      try {
+        const prices = await getPrices(pair)
+        const now = Date.now()
+        const lastTrade = lastTradeTimestamps[pair] || 0
+
+        const forwardSpread = calculateSpread(prices.geminiBid, prices.krakenAsk)
+        const reverseSpread = calculateSpread(prices.krakenBid, prices.geminiAsk)
+
+        if (forwardSpread >= SPREAD_THRESHOLD && now - lastTrade >= COOLDOWN_MS) {
+          const profit = (forwardSpread / 100) * TRADE_SIZE
+          await sendTelegramAlert(pair, forwardSpread, profit, 'geminiBuy')
+          lastTradeTimestamps[pair] = now
+          updateRow({ pair, ...prices, spread: forwardSpread, profit, action: 'Buy Gemini / Sell Kraken' })
+          setTotalProfit(prev => prev + profit)
+        } else if (reverseSpread >= SPREAD_THRESHOLD && now - lastTrade >= COOLDOWN_MS) {
+          const profit = (reverseSpread / 100) * TRADE_SIZE
+          await sendTelegramAlert(pair, reverseSpread, profit, 'krakenBuy')
+          lastTradeTimestamps[pair] = now
+          updateRow({ pair, ...prices, spread: reverseSpread, profit, action: 'Buy Kraken / Sell Gemini' })
+          setTotalProfit(prev => prev + profit)
+        }
+      } catch (err: any) {
+        console.error(`Error checking spread for ${pair}:`, err.message)
+      }
+    }
+
     const interval = setInterval(() => {
-      TRADE_PAIRS.forEach(pair => checkSpread(pair, updateRow, setTotalProfit))
+      TRADE_PAIRS.forEach((pair) => checkSpread(pair))
     }, 250)
 
     return () => clearInterval(interval)
